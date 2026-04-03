@@ -8,8 +8,20 @@ export default function EditEventScreen() {
   const params = useLocalSearchParams();
   const eventId = params.id as string;
   
-  const { todayEvents, updateEvent } = useEventStore();
-  const event = todayEvents.find(e => e.id === eventId);
+  const { todayEvents, pastEvents, updateEvent } = useEventStore();
+  
+  // Find event in either todayEvents or pastEvents
+  let event = todayEvents.find(e => e.id === eventId);
+  if (!event) {
+    // Search in past events
+    for (const day of pastEvents) {
+      const found = day.events.find(e => e.id === eventId);
+      if (found) {
+        event = found;
+        break;
+      }
+    }
+  }
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');

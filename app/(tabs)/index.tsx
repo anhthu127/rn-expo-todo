@@ -1,11 +1,12 @@
-import { useEffect } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
-import { router } from 'expo-router';
-import { useEventStore } from '@/src/stores/todo-store';
 import { eventService } from '@/src/db/services';
+import { useEventStore } from '@/src/stores/todo-store';
+import { router } from 'expo-router';
+import { useEffect, useRef } from 'react';
+import { RefreshControl, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 
 export default function TodayScreen() {
   const { todayEvents, isLoading, loadTodayEvents, toggleComplete, deleteEvent } = useEventStore();
+  const lastTapRef = useRef<{ [key: string]: number }>({});
 
   useEffect(() => {
     // Initialize database and load events
@@ -18,6 +19,21 @@ export default function TodayScreen() {
 
   const handleRefresh = async () => {
     await loadTodayEvents();
+  };
+
+  const handleDoubleTap = (eventId: string) => {
+    const now = Date.now();
+    const lastTap = lastTapRef.current[eventId] || 0;
+    const DOUBLE_TAP_DELAY = 300; // milliseconds
+
+    if (now - lastTap < DOUBLE_TAP_DELAY) {
+      // Double tap detected
+      router.push(`/edit-event?id=${eventId}`);
+      lastTapRef.current[eventId] = 0; // Reset
+    } else {
+      // First tap
+      lastTapRef.current[eventId] = now;
+    }
   };
 
   const completedCount = todayEvents.filter(e => e.completed).length;
@@ -53,6 +69,9 @@ export default function TodayScreen() {
               month: 'long', 
               day: 'numeric' 
             })}
+          </Text>
+          <Text className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+            💡 Double-tap an event to edit it
           </Text>
 
           {/* Progress Card */}
@@ -112,10 +131,11 @@ export default function TodayScreen() {
                     )}
                   </TouchableOpacity>
 
-                  {/* Content - Tappable to Edit */}
+                  {/* Content - Double-tap to Edit */}
                   <TouchableOpacity 
-                    onPress={() => router.push(`/edit-event?id=${event.id}`)}
+                    onPress={() => handleDoubleTap(event.id)}
                     className="flex-1"
+                    activeOpacity={0.7}
                   >
                     <Text 
                       className={`text-lg font-semibold mb-1 ${
